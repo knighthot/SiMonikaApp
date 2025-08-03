@@ -1,0 +1,49 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-Black.ttf",
+      "sha1": "f4d64613dbcd578cf46958930ee10442c3540816"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-Bold.ttf",
+      "sha1": "eb4eb063dea76aff22585c182d473d56ee4bea79"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-ExtraBold.ttf",
+      "sha1": "07b7996e8c245ee6580ee6cccfc338c5a816bade"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-ExtraLight.ttf",
+      "sha1": "98e4860b211044096b671edfc4ff46dd90404e07"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-Light.ttf",
+      "sha1": "e1d3ebe2eba31feb11585eabd1a1851c1b3af31d"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-Medium.ttf",
+      "sha1": "709088b89172798ce4e769e44c674f096343f2d3"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-Regular.ttf",
+      "sha1": "47345c6be8b27ccd71fd732e924b55f1a0f24768"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-SemiBold.ttf",
+      "sha1": "ac759ec2b6469b4f98dcc233e19aea6d5e4771a3"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-Thin.ttf",
+      "sha1": "a3b6a94f2d657f0bc9c89da16ff08b8332fc7d8a"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit/Outfit-VariableFont_wght.ttf",
+      "sha1": "ed5965e731d8dabd7306249ec8efc4c670a69d0d"
+    },
+    {
+      "path": "src/Assets/Fonts/Outfit.zip",
+      "sha1": "d88e962f6b94c3c01ec8847cf98b8c532cfd6397"
+    }
+  ]
+}

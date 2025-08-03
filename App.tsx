@@ -1,15 +1,11 @@
-import { View, Text } from 'react-native'
-import React from 'react'
-import "./global.css"
-const App = () => {
-  return (
-    <View className="flex-1 items-center justify-center">
-      <Text className='text-3xl font-bold bg-red-500'>App</Text>
-      <View className='bg-white'>
-        <Text className='text-3xl font-bold'>App</Text>
-      </View>
-    </View>
-  )
-}
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import RootNavigator from './src/Navigations/RootNavigator';
 
-export default App
+export default function App() {
+  return (
+    <NavigationContainer>
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
