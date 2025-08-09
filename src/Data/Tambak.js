@@ -47,3 +47,58 @@ export const dummyTambakList = [
     keterangan: 'Tambak penerima data IoT dari T001 - T004',
   };
   
+  export const dummyPerangkatList = [
+  {
+    ID_Perangkat: 'DEV001',
+    Nama_LokasiPerangkat: 'Tambak A - Pasir',
+    Endpoint_Data: 'https://api.example.com/perangkat/dev001/data',
+    Endpoint_Firebase: 'perangkat/dev001/firebase',
+    Status: 'Aktif'
+  },
+  {
+    ID_Perangkat: 'DEV002',
+    Nama_LokasiPerangkat: 'Tambak B - Lumpur',
+    Endpoint_Data: 'https://api.example.com/perangkat/dev002/data',
+    Endpoint_Firebase: 'perangkat/dev002/firebase',
+    Status: 'Non Aktif'
+  },
+  {
+    ID_Perangkat: 'DEV003',
+    Nama_LokasiPerangkat: 'Tambak C - Campuran',
+    Endpoint_Data: 'https://api.example.com/perangkat/dev003/data',
+    Endpoint_Firebase: 'perangkat/dev003/firebase',
+    Status: 'Aktif'
+  },
+  {
+    ID_Perangkat: 'DEV004',
+    Nama_LokasiPerangkat: 'Tambak D - Batu Kapur',
+    Endpoint_Data: 'https://api.example.com/perangkat/dev004/data',
+    Endpoint_Firebase: 'perangkat/dev004/firebase',
+    Status: 'Aktif'
+  },
+  {
+    ID_Perangkat: 'DEV999',
+    Nama_LokasiPerangkat: 'Penerima Data IoT',
+    Endpoint_Data: 'https://api.example.com/perangkat/dev999/data',
+    Endpoint_Firebase: 'perangkat/dev999/firebase',
+    Status: 'Aktif'
+  },
+];
+
+
+  // Contoh cara ambil data relasi (join dummy)
+export const tambakWithPerangkat = dummyTambakList.map(tambak => {
+  const perangkat = dummyPerangkatList.find(
+    p => p.ID_Perangkat === tambak.ID_Perangkat
+  );
+
+  return {
+    ...tambak,
+    Nama_LokasiPerangkat: perangkat?.Nama_LokasiPerangkat || '-',
+    Endpoint_Data: perangkat?.Endpoint_Data || '-',
+    Endpoint_Firebase: perangkat?.Endpoint_Firebase || '-',
+    Status: perangkat?.Status || '-',
+  };
+});
+
+console.log(tambakWithPerangkat);

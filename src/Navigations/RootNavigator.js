@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SplashScreen from '../Screens/SplashScreens/SplashScreens';
 import LoginScreen from '../Auth/LoginScreens';
 import AdminTabs from './AdminTabNavigator';
+import ManajementTambak from '../Screens/Admins/ManajementTambak/ManajementTambak';
 import UserTabs from './UserTabNavigator';
 import Dashboard from '../Screens/Admins/Dashboards/Dashboard';
 
@@ -21,7 +22,7 @@ export default function RootNavigator() {
   }, []);
 
   if (isLoading) {
-    return <SplashScreen />;
+    return <ManajementTambak />;
   }
 
   return (

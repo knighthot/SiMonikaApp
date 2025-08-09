@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import WaveBackground from '../../../Utils/WaveBackground';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { FishIcons } from '../../../Assets/Svg';
 import { dummyTambakList } from '../../../Data/Tambak';
 
 const ManajementTambak = () => {
@@ -9,7 +10,7 @@ const ManajementTambak = () => {
     <View
       className="flex-row rounded-lg mb-4 overflow-hidden"
       style={{
-        backgroundColor: '#396497', // Warna biru sesuai desain
+        backgroundColor: '#5176AF', // Warna biru sesuai desain
         borderRadius: 12,
       }}
     >
@@ -22,7 +23,7 @@ const ManajementTambak = () => {
           paddingVertical: 16,
         }}
       >
-        <Icon name="fish-outline" size={32} color="#fff" />
+        <FishIcons  color="#fff" />
         <Text
           style={{
             color: '#fff',
@@ -39,14 +40,14 @@ const ManajementTambak = () => {
         style={{
           flex: 1,
           backgroundColor: '#fff',
-          padding: 12,
+          padding: 0,
           justifyContent: 'space-between',
           borderTopRightRadius: 12,
           borderBottomRightRadius: 12,
         }}
       >
         {/* Labels */}
-        <View>
+        <View style={{ padding: 16 }}>
           <Text style={{ fontSize: 12, color: '#333' }}>
             Id_Perangkat: {item.ID_Perangkat}
           </Text>
@@ -60,11 +61,13 @@ const ManajementTambak = () => {
         </View>
   
         {/* Action Buttons */}
-        <View
+        <View className='p-2'
           style={{
             flexDirection: 'row',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-evenly',
             marginTop: 8,
+            width: '100%',
+            backgroundColor: '#5176AF',
           }}
         >
           <TouchableOpacity
@@ -111,7 +114,7 @@ const ManajementTambak = () => {
       </View>
        <View className="p-4 bottom-10">
        {/* Background */}
-       <WaveBackground className="absolute left-0 right-0 bottom-0" />
+       <WaveBackground className="absolute left-0 right-0 bottom-0 "  />
       </View>
 
 

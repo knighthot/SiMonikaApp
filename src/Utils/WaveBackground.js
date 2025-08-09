@@ -1,86 +1,91 @@
-// WaveBackground.js
-import React from 'react';
-import { Dimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { Dimensions, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  withSequence,
+  Easing,
 } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
+const height = 120;
+
+function Wave({ color, opacity }) {
+  return (
+    <Svg width={width} height={height}>
+      <Path
+        d={`M0,60 C150,0 ${width / 2},120 ${width},60 V${height} H0 Z`}
+        fill={color}
+        opacity={opacity}
+      />
+    </Svg>
+  );
+}
 
 export default function WaveBackground() {
-  // Shared values for each wave layer
-  const translateX1 = useSharedValue(0);
-  const translateX2 = useSharedValue(0);
-  const translateX3 = useSharedValue(0);
+  // Geser horizontal tiap layer
+  const x1 = useSharedValue(0);
+  const x2 = useSharedValue(0);
+  const x3 = useSharedValue(0);
 
-  // Start the animations
-  React.useEffect(() => {
-    translateX1.value = withRepeat(
-      withTiming(-width, { duration: 12000 }),
+  // Gerak naik-turun
+  const yOffset = useSharedValue(0);
+
+  useEffect(() => {
+    const moveWave = (shared, speed) => {
+      shared.value = withRepeat(
+        withTiming(-width, { duration: speed, easing: Easing.linear }),
+        -1,
+        false
+      );
+    };
+    moveWave(x1, 12000);
+    moveWave(x2, 8000);
+    moveWave(x3, 5000);
+
+    // Ombak naik-turun
+    yOffset.value = withRepeat(
+      withSequence(
+        withTiming(-5, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(5, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
       -1,
-      false
-    );
-    translateX2.value = withRepeat(
-      withTiming(-width, { duration: 8000 }),
-      -1,
-      false
-    );
-    translateX3.value = withRepeat(
-      withTiming(-width, { duration: 5000 }),
-      -1,
-      false
+      true
     );
   }, []);
 
-  // Animated styles for each wave
-  const animatedStyle1 = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX1.value }],
+  const style1 = useAnimatedStyle(() => ({
+    transform: [{ translateX: x1.value }, { translateY: yOffset.value }],
   }));
-  const animatedStyle2 = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX2.value }],
+  const style2 = useAnimatedStyle(() => ({
+    transform: [{ translateX: x2.value }, { translateY: yOffset.value / 2 }],
   }));
-  const animatedStyle3 = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX3.value }],
+  const style3 = useAnimatedStyle(() => ({
+    transform: [{ translateX: x3.value }, { translateY: yOffset.value / 3 }],
   }));
 
   return (
-    <>
-      {/* Wave Layer 1 - White */}
-      <Animated.View style={[{ position: 'absolute', top: 10 }, animatedStyle1]}>
-        <Svg width={width * 2} height={120} viewBox={`0 0 ${width * 2} 120`}>
-          <Path
-            d={`M0,60 C150,0 ${width},120 ${width * 2},60 V120 H0 Z`}
-            fill="#FFFFFF"
-            opacity="0.9"
-          />
-        </Svg>
+    <View style={{ position: 'absolute', width: '100%', height, zIndex: 1 }}>
+      {/* Layer 1 */}
+      <Animated.View style={[{ flexDirection: 'row' }, style1]}>
+        <Wave color="#FFFFFF" opacity={0.9} />
+        <Wave color="#FFFFFF" opacity={0.9} />
       </Animated.View>
 
-      {/* Wave Layer 2 - #9ED0FF */}
-      <Animated.View style={[{ position: 'absolute', top: 0 }, animatedStyle2]}>
-        <Svg width={width * 2} height={120} viewBox={`0 0 ${width * 2} 120`}>
-          <Path
-            d={`M0,60 C200,120 ${width},0 ${width * 2},60 V120 H0 Z`}
-            fill="#9ED0FF"
-            opacity="0.7"
-          />
-        </Svg>
+      {/* Layer 2 */}
+      <Animated.View style={[{ flexDirection: 'row', position: 'absolute', top: 0 ,zIndex: 2}, style2]}>
+        <Wave color="#9ED0FF" opacity={0.7} />
+        <Wave color="#9ED0FF" opacity={0.7} />
       </Animated.View>
 
-      {/* Wave Layer 3 - #67B6FF */}
-      <Animated.View style={[{ position: 'absolute', top: 0 }, animatedStyle3]}>
-        <Svg width={width * 2} height={120} viewBox={`0 0 ${width * 2} 120`}>
-          <Path
-            d={`M0,60 C100,0 ${width},120 ${width * 2},60 V120 H0 Z`}
-            fill="#67B6FF"
-            opacity="0.7"
-          />
-        </Svg>
+      {/* Layer 3 */}
+      <Animated.View style={[{ flexDirection: 'row', position: 'absolute', top: 0 ,zIndex: 3 }, style3]}>
+        <Wave color="#67B6FF" opacity={0.7} />
+        <Wave color="#67B6FF" opacity={0.7} />
       </Animated.View>
-    </>
+    </View>
   );
 }
