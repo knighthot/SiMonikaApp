@@ -6,7 +6,8 @@ import AdminTabs from './AdminTabNavigator';
 import ManajementTambak from '../Screens/Admins/ManajementTambak/ManajementTambak';
 import UserTabs from './UserTabNavigator';
 import Dashboard from '../Screens/Admins/Dashboards/Dashboard';
-
+import TambakDetail from '../Screens/Admins/ManajementTambak/TambakDetails';
+import PerangkatDetail from '../Screens/Admins/ManajementPerangkat/PerangkatDetail';
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
@@ -41,8 +42,10 @@ export default function RootNavigator() {
       </Stack.Screen>
     ) : (
       <>
-        <Stack.Screen name="Admin" component={AdminTabs} />
         <Stack.Screen name="User" component={UserTabs} />
+        <Stack.Screen name="Admin" component={AdminTabs} />
+        <Stack.Screen name="TambakDetail" component={TambakDetail} />
+          <Stack.Screen name="PerangkatDetail" component={PerangkatDetail} />
       </>
     )}
   </Stack.Navigator>

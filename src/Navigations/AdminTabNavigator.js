@@ -4,7 +4,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Dashboard from '../Screens/Admins/Dashboards/Dashboard';
 import ManajementPerangkat from '../Screens/Admins/ManajementPerangkat/ManajementPerangkat';
 import ManajementTambak from '../Screens/Admins/ManajementTambak/ManajementTambak';
+import TambakDetail from '../Screens/Admins/ManajementTambak/TambakDetails';
 import { PerangkatIcons, TambakIcons, MapIcons, Backtab } from '../Assets/Svg/index';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+const Stack = createNativeStackNavigator();
 
 const Tab = createBottomTabNavigator();
 const { width } = Dimensions.get('window');

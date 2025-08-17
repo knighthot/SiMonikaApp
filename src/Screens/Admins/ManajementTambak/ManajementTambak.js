@@ -4,8 +4,11 @@ import WaveBackground from '../../../Utils/WaveBackground';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { FishIcons } from '../../../Assets/Svg';
 import { dummyTambakList } from '../../../Data/Tambak';
+import { useNavigation } from '@react-navigation/native';
+
 
 const ManajementTambak = () => {
+  
   const renderItem = ({ item }) => (
     <View
       className="flex-row rounded-lg mb-4 overflow-hidden"
@@ -71,6 +74,7 @@ const ManajementTambak = () => {
           }}
         >
           <TouchableOpacity
+           onPress={() => navigation.navigate('TambakDetail', { tambak: item })}
             style={{
               backgroundColor: '#68C07F',
               padding: 8,
@@ -105,6 +109,7 @@ const ManajementTambak = () => {
     </View>
   );
   
+  const navigation = useNavigation();
 
   return (
     <View className="flex-1 bg-white relative pt-0">

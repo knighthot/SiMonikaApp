@@ -4,9 +4,12 @@ import WaveBackground from '../../../Utils/WaveBackground';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PeralatanIcons } from '../../../Assets/Svg';
 import { tambakWithPerangkat, dummyPerangkatList, dummyTambakList } from '../../../Data/Tambak';
+import { useNavigation } from '@react-navigation/native';
+
 
 const ManajementPerangkat = () => {
-  const renderItem = ({ item }) => (
+
+  const renderItem = ({ item , index}) => (
     <View
       className="flex-row rounded-lg mb-4 overflow-hidden"
       style={{
@@ -70,6 +73,7 @@ const ManajementPerangkat = () => {
           }}
         >
           <TouchableOpacity
+            onPress={() => navigation.navigate('PerangkatDetail', { perangkat: item })}
             style={{
               backgroundColor: '#68C07F',
               padding: 8,
@@ -80,6 +84,15 @@ const ManajementPerangkat = () => {
             <Icon name="eye" size={16} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
+           onPress={() => {
+              console.log('=== EDIT CLICKED ===');
+              console.log('Index:', index);
+              console.log('Item:', item);
+              console.log('ID_Perangkat:', item.ID_Perangkat);
+              console.log('Data list (length):', tambakWithPerangkat.length);
+              // kalau mau liat seluruh list, hati-hati panjang:
+              // console.log('Full list:', tambakWithPerangkat);
+            }}
             style={{
               backgroundColor: '#F2B84C',
               padding: 8,
@@ -104,7 +117,8 @@ const ManajementPerangkat = () => {
     </View>
   );
   
-
+  const navigation = useNavigation();
+ 
   return (
     <View className="flex-1 bg-white relative pt-0">
        {/* Header */}
