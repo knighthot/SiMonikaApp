@@ -2,6 +2,8 @@
 import React from 'react';
 import { SafeAreaView, View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import { resetToLogin } from '../../Navigations/navigationService';
 
 const Item = ({
   title,
@@ -23,11 +25,36 @@ const Item = ({
   </TouchableOpacity>
 );
 
-const Menu = ({ navigation }) => {
+const Menu = ({ navigation: navFromProps }) => {
+  const navigation = useNavigation();
+
+  const doResetToLogin = () => {
+    // 1) kalau punya navRef (navigationService), pakai ini — paling aman ke root
+    if (typeof resetToLogin === 'function') {
+      resetToLogin();
+      return;
+    }
+    // 2) fallback: reset dari navigator terdekat ke route 'Login'
+    const rootNav = navigation.getParent?.()?.getParent?.() ?? navFromProps ?? navigation;
+    rootNav.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      })
+    );
+  };
+
+  const doLogout = async () => {
+    try {
+      await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
+    } catch {}
+    doResetToLogin();
+  };
+
   const onLogout = () =>
     Alert.alert('Keluar', 'Anda yakin ingin keluar?', [
       { text: 'Batal', style: 'cancel' },
-      { text: 'Keluar', style: 'destructive', onPress: () => console.log('Logout') },
+      { text: 'Keluar', style: 'destructive', onPress: doLogout },
     ]);
 
   return (
@@ -57,7 +84,7 @@ const Menu = ({ navigation }) => {
           color="#B83434"
           icon="log-out-outline"
           width="55%"
-          onPress={onLogout}
+       onPress={onLogout}
         />
       </View>
     </SafeAreaView>

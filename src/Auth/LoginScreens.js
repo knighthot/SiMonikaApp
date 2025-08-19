@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,45 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { LinearGradient } from 'react-native-linear-gradient';
 import "../../global.css"
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from 'react-native-config';
+import { apiLogin } from '../api'; // sesuaikan path
+import { resetToRoleDeferred } from '../Navigations/navigationService';
 
 
 const LoginScreen = ({ onLogin }) => {
   const navigation = useNavigation();
+
+    const [username, setUsername] = useState(''); // backend expects Nama_tambak
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.1.8:3006')
+  async function handleLogin() {
+    if (!username || !password) {
+      Alert.alert('Lengkapi', 'Username dan password wajib diisi.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const data = await apiLogin(username, password); // <-- pakai helper
+      const role = (data?.user?.role || 'USER').toUpperCase();
+  onLogin(role);                 // update state di RootNavigator
+  resetToRoleDeferred(role);     // tunda reset sampai navigator siap (ops
+    } catch (e) {
+      Alert.alert('Login gagal', e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
 
   return (
     <View className="flex-1 bg-[#D2F8FF] items-center justify-start pt-20">
@@ -75,10 +105,14 @@ const LoginScreen = ({ onLogin }) => {
         <View className="flex-row items-center border border-gray-300 rounded-xl px-3 mb-4">
           <Icon name="user" size={18} color="#aaa" />
           <TextInput
-            className="flex-1 ml-2 h-10 text-black"
+             className="flex-1 ml-2 h-10 text-black"
             placeholder="Masukkan username"
             placeholderTextColor="#999"
             style={{ fontFamily: 'Inter-Regular' }}
+            autoCapitalize="none"
+            value={username}
+            onChangeText={setUsername}
+            returnKeyType="next"
           />
         </View>
 
@@ -97,23 +131,28 @@ const LoginScreen = ({ onLogin }) => {
             placeholderTextColor="#999"
             secureTextEntry
             style={{ fontFamily: 'Inter-Regular' }}
+            autoCapitalize="none"
+            value={password}
+            onChangeText={setPassword}
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
         </View>
 
         {/* Tombol Masuk */}
-        <TouchableOpacity
-  onPress={() => {
-    onLogin('admin');
-  }}
-  className="bg-[#5686BF] py-3 rounded-lg mb-10"
->
-  <Text
-    className="text-white text-center text-base"
-    style={{ fontFamily: 'Outfit-Medium' }}
-  >
-    Masuk
-  </Text>
-</TouchableOpacity>
+ <TouchableOpacity
+          onPress={handleLogin}
+          disabled={loading}
+          className={`py-3 rounded-lg mb-10 ${loading ? 'bg-[#8fb1d8]' : 'bg-[#5686BF]'}`}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-white text-center text-base" style={{ fontFamily: 'Outfit-Medium' }}>
+              Masuk
+            </Text>
+          )}
+        </TouchableOpacity>
 
       </View>
     </View>

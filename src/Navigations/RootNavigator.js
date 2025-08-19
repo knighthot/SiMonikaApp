@@ -1,53 +1,79 @@
-import React, { useState, useEffect } from 'react';
+// RootNavigator.js
+import React, { useEffect, useState, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import SplashScreen from '../Screens/SplashScreens/SplashScreens';
 import LoginScreen from '../Auth/LoginScreens';
 import AdminTabs from './AdminTabNavigator';
-import ManajementTambak from '../Screens/Admins/ManajementTambak/ManajementTambak';
 import UserTabs from './UserTabNavigator';
-import Dashboard from '../Screens/Admins/Dashboards/Dashboard';
 import TambakDetail from '../Screens/Admins/ManajementTambak/TambakDetails';
 import PerangkatDetail from '../Screens/Admins/ManajementPerangkat/PerangkatDetail';
+
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false); // boot selesai?
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState(null);
+  const [role, setRole] = useState(null); // "ADMIN" | "USER"
+
+  // durasi minimum Splash biar nggak flicker
+  const MIN_SPLASH_MS = 6000;
+  const startRef = useRef(Date.now());
 
   useEffect(() => {
-    // Simulasi loading splash screen
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 6000);
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('auth_token');
+        const userStr = await AsyncStorage.getItem('auth_user');
+        const r = userStr ? (JSON.parse(userStr)?.role ?? null) : null;
+        setIsLoggedIn(!!token);
+        setRole(r);
+      } finally {
+        // jaga splash minimal MIN_SPLASH_MS
+        const elapsed = Date.now() - startRef.current;
+        const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
+        setTimeout(() => setHydrated(true), wait);
+      }
+    })();
   }, []);
 
-  if (isLoading) {
-    return <ManajementTambak />;
+  // selama boot, tampilkan Splash penuh (navigator belum di-mount)
+  if (!hydrated) {
+    return <SplashScreen />;
   }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-    {!isLoggedIn ? (
+      {/* Login SELALU terdaftar supaya reset ke Login selalu valid */}
       <Stack.Screen name="Login">
         {(props) => (
           <LoginScreen
             {...props}
             onLogin={(userRole) => {
+              const normalized = (userRole === 'ADMIN') ? 'ADMIN' : 'USER';
               setIsLoggedIn(true);
-              setRole(userRole);
+              setRole(normalized);
+              props.navigation.reset({
+                index: 0,
+                routes: [{ name: normalized === 'ADMIN' ? 'Admin' : 'User' }],
+              });
             }}
           />
         )}
       </Stack.Screen>
-    ) : (
-      <>
-        <Stack.Screen name="User" component={UserTabs} />
+
+      {/* Hanya satu root sesuai role, ini mencegah “kepotong” */}
+      {isLoggedIn && role === 'ADMIN' && (
         <Stack.Screen name="Admin" component={AdminTabs} />
-        <Stack.Screen name="TambakDetail" component={TambakDetail} />
-          <Stack.Screen name="PerangkatDetail" component={PerangkatDetail} />
-      </>
-    )}
-  </Stack.Navigator>
-  );  
+      )}
+      {isLoggedIn && role !== 'ADMIN' && (
+        <Stack.Screen name="User" component={UserTabs} />
+      )}
+
+      {/* Shared detail screens */}
+      <Stack.Screen name="TambakDetail" component={TambakDetail} />
+      <Stack.Screen name="PerangkatDetail" component={PerangkatDetail} />
+    </Stack.Navigator>
+  );
 }

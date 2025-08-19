@@ -4,14 +4,23 @@ import MapView, { Marker, Circle } from 'react-native-maps';
 import { dummyTambakList, penerimaTambak } from '../../../Data/Tambak';
 import { Tambak, Reciver, Logo } from '../../../Assets/Image/Index';
 import lightMapStyle from '../../../Utils/customMapStyle';
+import Icon from 'react-native-vector-icons/Feather';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import "../../../../global.css"
 const { width, height } = Dimensions.get('window');
+import { resetToLogin } from '../../../Navigations/navigationService';
 
 const AdminDashboardScreen = () => {
+  const navigation = useNavigation()
   const [isOn, setIsOn] = useState(false);
   const [selectedTambak, setSelectedTambak] = useState(null);
   const mapRef = React.useRef(null);
 
+ const handleLogout = async () => {
+await AsyncStorage.multiRemove(['auth_token','auth_user']);
+  resetToLogin();
+  };
 
   const penerimaPos = {
     latitude: penerimaTambak.Latitude,
@@ -73,6 +82,15 @@ const AdminDashboardScreen = () => {
         </View>
     
         <Text className="text-white font-bold text-xl pl-2">Simonika{'\n'}Welcome Admin !!</Text>
+
+           <TouchableOpacity
+           onPress={handleLogout}
+            className="ml-auto bg-white/15 border border-white/30 px-3 py-2 rounded-lg flex-row items-center"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Icon name="log-out" size={16} color="#fff" />
+            <Text className="text-white font-semibold ml-2">Keluar</Text>
+          </TouchableOpacity>
       </View>
 
       {/* Toggle */}
