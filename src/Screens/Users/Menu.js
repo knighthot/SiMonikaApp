@@ -4,6 +4,7 @@ import { SafeAreaView, View, Text, TouchableOpacity, Alert, StyleSheet } from 'r
 import Icon from 'react-native-vector-icons/Ionicons';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { resetToLogin } from '../../Navigations/navigationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Item = ({
   title,
@@ -25,6 +26,7 @@ const Item = ({
   </TouchableOpacity>
 );
 
+
 const Menu = ({ navigation: navFromProps }) => {
   const navigation = useNavigation();
 
@@ -43,6 +45,15 @@ const Menu = ({ navigation: navFromProps }) => {
       })
     );
   };
+
+  const goPengaturanAkun = async () => {
+  const seen = await AsyncStorage.getItem('onboard_settings_seen');
+  if (seen === '1') {
+    navigation.navigate('PengaturanAkun');
+  } else {
+    navigation.navigate('PengaturanAkunOnboarding');
+  }
+};
 
   const doLogout = async () => {
     try {
@@ -75,7 +86,7 @@ const Menu = ({ navigation: navFromProps }) => {
         <Item
           title="Pengaturan Akun"
           icon="settings-outline"
-          onPress={() => navigation.navigate?.('PengaturanAkun')}
+      onPress={goPengaturanAkun} 
         />
 
         {/* tombol keluar lebih pendek & merah */}

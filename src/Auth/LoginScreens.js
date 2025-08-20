@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Config from 'react-native-config';
 import { apiLogin } from '../api'; // sesuaikan path
-import { resetToRoleDeferred } from '../Navigations/navigationService';
+import { resetToRole } from '../Navigations/navigationService';
 
 
 const LoginScreen = ({ onLogin }) => {
@@ -37,7 +37,7 @@ const LoginScreen = ({ onLogin }) => {
       const data = await apiLogin(username, password); // <-- pakai helper
       const role = (data?.user?.role || 'USER').toUpperCase();
   onLogin(role);                 // update state di RootNavigator
-  resetToRoleDeferred(role);     // tunda reset sampai navigator siap (ops
+  resetToRole(role);     // tunda reset sampai navigator siap (ops
     } catch (e) {
       Alert.alert('Login gagal', e.message);
     } finally {

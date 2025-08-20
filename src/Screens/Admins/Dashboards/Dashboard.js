@@ -11,6 +11,7 @@ import "../../../../global.css"
 const { width, height } = Dimensions.get('window');
 import { resetToLogin } from '../../../Navigations/navigationService';
 
+
 const AdminDashboardScreen = () => {
   const navigation = useNavigation()
   const [isOn, setIsOn] = useState(false);
@@ -18,8 +19,8 @@ const AdminDashboardScreen = () => {
   const mapRef = React.useRef(null);
 
  const handleLogout = async () => {
-await AsyncStorage.multiRemove(['auth_token','auth_user']);
-  resetToLogin();
+await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
+resetToLogin();
   };
 
   const penerimaPos = {

@@ -4,3 +4,4 @@ export { default as PerangkatIcons } from './perangkat';
 export { default as TambakIcons } from './tambak';
 export { default as FishIcons } from './fishtank';
 export { default as PeralatanIcons } from './Peralatan';
+export { default as SupportIcons} from './support'

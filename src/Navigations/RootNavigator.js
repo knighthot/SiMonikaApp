@@ -1,4 +1,4 @@
-// RootNavigator.js
+// Navigations/RootNavigator.js
 import React, { useEffect, useState, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,13 +13,13 @@ import PerangkatDetail from '../Screens/Admins/ManajementPerangkat/PerangkatDeta
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
-  const [hydrated, setHydrated] = useState(false); // boot selesai?
+  const [hydrated, setHydrated] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState(null); // "ADMIN" | "USER"
+  const [role, setRole] = useState(null); // 'ADMIN' | 'USER'
 
-  // durasi minimum Splash biar nggak flicker
+  // Splash minimal supaya tidak “kepotong”
   const MIN_SPLASH_MS = 6000;
-  const startRef = useRef(Date.now());
+  const t0Ref = useRef(Date.now());
 
   useEffect(() => {
     (async () => {
@@ -30,22 +30,20 @@ export default function RootNavigator() {
         setIsLoggedIn(!!token);
         setRole(r);
       } finally {
-        // jaga splash minimal MIN_SPLASH_MS
-        const elapsed = Date.now() - startRef.current;
-        const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
+        const dt = Date.now() - t0Ref.current;
+        const wait = Math.max(0, MIN_SPLASH_MS - dt);
         setTimeout(() => setHydrated(true), wait);
       }
     })();
   }, []);
 
-  // selama boot, tampilkan Splash penuh (navigator belum di-mount)
-  if (!hydrated) {
-    return <SplashScreen />;
-  }
+  if (!hydrated) return <SplashScreen />;
+
+  const initialRouteName = !isLoggedIn ? 'Login' : (role === 'ADMIN' ? 'Admin' : 'User');
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Login SELALU terdaftar supaya reset ke Login selalu valid */}
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRouteName}>
+      {/* Login SELALU ada */}
       <Stack.Screen name="Login">
         {(props) => (
           <LoginScreen
@@ -54,6 +52,7 @@ export default function RootNavigator() {
               const normalized = (userRole === 'ADMIN') ? 'ADMIN' : 'USER';
               setIsLoggedIn(true);
               setRole(normalized);
+              // aman karena 'Admin' & 'User' SELALU terdaftar
               props.navigation.reset({
                 index: 0,
                 routes: [{ name: normalized === 'ADMIN' ? 'Admin' : 'User' }],
@@ -63,13 +62,9 @@ export default function RootNavigator() {
         )}
       </Stack.Screen>
 
-      {/* Hanya satu root sesuai role, ini mencegah “kepotong” */}
-      {isLoggedIn && role === 'ADMIN' && (
-        <Stack.Screen name="Admin" component={AdminTabs} />
-      )}
-      {isLoggedIn && role !== 'ADMIN' && (
-        <Stack.Screen name="User" component={UserTabs} />
-      )}
+      {/* Kedua root tab SELALU terdaftar (aman untuk reset) */}
+      <Stack.Screen name="Admin" component={AdminTabs} />
+      <Stack.Screen name="User"  component={UserTabs} />
 
       {/* Shared detail screens */}
       <Stack.Screen name="TambakDetail" component={TambakDetail} />

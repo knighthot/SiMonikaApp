@@ -1,10 +1,14 @@
+// Navigations/navigationService.js
 import { createNavigationContainerRef, CommonActions } from '@react-navigation/native';
-import { InteractionManager } from 'react-native';
 
 export const navRef = createNavigationContainerRef();
 
-function doReset(name) {
-  if (!navRef.isReady()) return;
+function reset(name) {
+  if (!navRef.isReady()) {
+    // kalau belum siap, tunda 1 frame biar aman
+    requestAnimationFrame(() => reset(name));
+    return;
+  }
   navRef.dispatch(
     CommonActions.reset({
       index: 0,
@@ -13,14 +17,7 @@ function doReset(name) {
   );
 }
 
-export const resetToLogin = () => doReset('Login');
-export const resetToAdmin = () => doReset('Admin');
-export const resetToUser  = () => doReset('User');
-export const resetToRole  = (role) => doReset(role === 'ADMIN' ? 'Admin' : 'User');
-
-// Kalau mau ditunda 1 frame/after interactions (menghindari warning):
-export function resetToRoleDeferred(role) {
-  InteractionManager.runAfterInteractions(() => {
-    resetToRole(role);
-  });
-}
+export const resetToLogin = () => reset('Login');         // ⬅️ ganti dari 'AuthStack' ke 'Login'
+export const resetToAdmin = () => reset('Admin');
+export const resetToUser  = () => reset('User');
+export const resetToRole  = (role) => reset(role === 'ADMIN' ? 'Admin' : 'User');
