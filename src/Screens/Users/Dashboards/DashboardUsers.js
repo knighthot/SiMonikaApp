@@ -166,8 +166,7 @@ const DashboardUser = ({ route, navigation }) => {
                     <Text className="text-[18px] font-bold text-slate-800">Parameter</Text>
                     <TouchableOpacity
                         className="bg-[#67A9F3] px-4 py-2 rounded-xl"
-                        onPress={() => navigation.navigate?.('Perangkat')}
-                    >
+                        onPress={() => navigation.navigate('DashboardUser', { screen: 'MonitoringIot' })}                    >
                         <Text className="text-white font-extrabold">Cek Alat</Text>
                     </TouchableOpacity>
                 </View>

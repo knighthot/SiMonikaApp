@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import { resetToLogin } from './Navigations/navigationService';
 
-const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.1.115:3006')
+const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.100.29:3006')
     
 
 function nowSec() { return Math.floor(Date.now() / 1000); }

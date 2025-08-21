@@ -8,13 +8,24 @@ import Menu from '../Screens/Users/Menu';
 import PengaturanAkun from '../Screens/Users/Pengaturan/PengaturanAkun';
 import OnboardingPengaturanAkun from '../Screens/Users/Pengaturan/OnboardingPengaturanAkun';
 import ChatAi from '../Screens/Users/ChatAi/ChatAi';
+import MonitoringIot from '../Screens/Users/Monitoring/MonitoringIot';
 import { PerangkatIcons, TambakIcons, MapIcons, Backtab } from '../Assets/Svg';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 const { width } = Dimensions.get('window');
 
-// ---- Stack khusus untuk tab "Menu"
+/* ---------- Dashboard Stack: tempatkan MonitoringIot DI SINI ---------- */
+function DashboardStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="DashboardHome" component={DashboardUser} />
+      <Stack.Screen name="MonitoringIot" component={MonitoringIot} />
+    </Stack.Navigator>
+  );
+}
+
+/* ---------- Menu Stack tetap ---------- */
 function MenuStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -25,11 +36,10 @@ function MenuStack() {
   );
 }
 
+/* ---------- Custom Tab Bar (sama seperti punyamu) ---------- */
 const CustomTabBar = ({ state, descriptors, navigation }) => {
-  // helper: ambil nama screen terdalam dari sebuah route (support nested)
   const getDeepActiveRouteName = (routeObj) => {
     let r = routeObj;
-    // r.state bisa undefined di awal render
     while (r?.state?.routes && Number.isInteger(r.state.index)) {
       r = r.state.routes[r.state.index];
     }
@@ -37,15 +47,16 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   };
 
   const focusedRouteObj = state.routes[state.index];
-  const focusedRootName = focusedRouteObj?.name;              // ex: 'DashboardUser' | 'ChatAi' | 'Menu'
-  const nestedActiveName = getDeepActiveRouteName(focusedRouteObj); // ex: 'MenuHome' | 'PengaturanAkunOnboarding' | 'PengaturanAkun'
+  const focusedRootName = focusedRouteObj?.name;                 // 'DashboardUser' | 'ChatAi' | 'Menu'
+  const nestedActiveName = getDeepActiveRouteName(focusedRouteObj); // 'DashboardHome' | 'MonitoringIot' | 'MenuHome' | 'OnboardingPengaturanAkun'
 
-  // ❗ aturan sembunyi tab:
+  // Sembunyikan tab bar hanya khusus yang kamu mau (contoh: onboarding & ChatAi)
   const shouldHideTab =
     focusedRootName === 'ChatAi' ||
-    nestedActiveName === 'OnboardingPengaturanAkun'; // ⬅️ sembunyikan saat onboarding
+    nestedActiveName === 'OnboardingPengaturanAkun';
 
   if (shouldHideTab) return null;
+
   return (
     <View style={styles.tabContainer}>
       <View style={styles.wrapper}>
@@ -87,12 +98,12 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   );
 };
 
+/* ---------- Tabs: DashboardUser pakai DashboardStack ---------- */
 export default function UserTabs() {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
-      <Tab.Screen name="DashboardUser" component={DashboardUser} />
+      <Tab.Screen name="DashboardUser" component={DashboardStack} />
       <Tab.Screen name="ChatAi" component={ChatAi} />
-      {/* ← Tab “Menu” sekarang berisi stack (MenuHome + PengaturanAkun) */}
       <Tab.Screen name="Menu" component={MenuStack} />
     </Tab.Navigator>
   );
