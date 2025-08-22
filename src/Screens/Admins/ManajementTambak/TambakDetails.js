@@ -15,6 +15,25 @@ const Row = ({ label, value }) => (
 const TambakDetail = ({ route, navigation }) => {
   const tambak = route?.params?.tambak ?? {};
 
+  const goPerangkatDetail = () => {
+  const perangkatObj = {
+    ID_Perangkat: tambak?.ID_Perangkat ?? null,
+    Nama_LokasiPerangkat: tambak?.PerangkatTerhubung ?? null,
+    Latitude: tambak?.Latitude ?? null,
+    Longitude: tambak?.Longitude ?? null,
+  };
+
+  if (!perangkatObj.ID_Perangkat) {
+    Alert.alert('Perangkat tidak tersedia');
+    return;
+  }
+
+  navigation.getParent()?.navigate('Perangkat', {
+    screen: 'PerangkatDetail',
+    params: { perangkat: perangkatObj },
+  });
+};
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* wave atas */}
