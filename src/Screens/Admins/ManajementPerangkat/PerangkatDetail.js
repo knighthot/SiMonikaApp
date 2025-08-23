@@ -1,13 +1,13 @@
 // src/Screens/Admins/ManajementPerangkat/PerangkatDetail.js
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, SafeAreaView, Platform, FlatList, Alert
+  View, Text, TouchableOpacity, SafeAreaView, Platform, FlatList, Alert,Linking
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PeralatanIcons } from '../../../Assets/Svg';
 import WaveBackground from '../../../Utils/WaveBackground';
 import Svg, { Circle } from 'react-native-svg';
-import { getPerangkatById, getIotLast, startIotSim } from '../../../api'; // ⬅️ pakai helper
+import { getPerangkatById, getIotLast } from '../../../api'; // ⬅️ pakai helper
 
 const Row = ({ label, value }) => (
   <View className="mb-4">
@@ -17,6 +17,14 @@ const Row = ({ label, value }) => (
   </View>
 );
 
+const openInGoogleMaps = (lat, lng, label = 'Lokasi Perangkat') => {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return;
+  // URL Google Maps: akan buka app jika terpasang, jika tidak buka browser
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(label)}`;
+  Linking.openURL(url).catch(() => {
+    Alert.alert('Gagal membuka Google Maps');
+  });
+};
 
 // ------------ rules status ------------
 const getMetricStatus = (metric, rawVal) => {
@@ -138,8 +146,7 @@ const PerangkatDetail = ({ route, navigation }) => {
     return;
   }
 
-  // Pindah ke tab "Tambak" dan langsung buka screen "TambakDetail"
-  navigation.getParent()?.navigate('Tambak', {
+navigation.getParent()?.navigate('Tambak', {
     screen: 'TambakDetail',
     params: { tambak: tambakObj },
   });
@@ -275,7 +282,11 @@ const PerangkatDetail = ({ route, navigation }) => {
           }
         />
 
-        <Row
+        
+        {/* Latitude/Longitude + tombol buka Maps */}
+<View className=" mt-2">
+  <View className="mb-4 flex-row items-center justify-between">
+  <Row
           label="Latitude/Longitude :"
           value={
             (typeof perangkat?.Latitude === 'number' && typeof perangkat?.Longitude === 'number')
@@ -283,6 +294,17 @@ const PerangkatDetail = ({ route, navigation }) => {
               : 'Tidak tersedia'
           }
         />
+    <TouchableOpacity
+      disabled={!(typeof perangkat?.Latitude === 'number' && typeof perangkat?.Longitude === 'number')}
+      onPress={() => openInGoogleMaps(perangkat.Latitude, perangkat.Longitude, perangkat?.Nama_LokasiPerangkat || 'Perangkat IoT')}
+      className="ml-3 rounded-full bg-[#67A9F3] p-2 opacity-100 disabled:opacity-40 bottom-2"
+    
+    >
+      <Icon name="navigate-outline" size={18} color="#fff" />
+    </TouchableOpacity>
+  </View>
+</View>
+
       </View>
 
       <View className="items-center mt-2">

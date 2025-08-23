@@ -7,8 +7,6 @@ import SplashScreen from '../Screens/SplashScreens/SplashScreens';
 import LoginScreen from '../Auth/LoginScreens';
 import AdminTabs from './AdminTabNavigator';
 import UserTabs from './UserTabNavigator';
-import TambakDetail from '../Screens/Admins/ManajementTambak/TambakDetails';
-import PerangkatDetail from '../Screens/Admins/ManajementPerangkat/PerangkatDetail';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,9 +64,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Admin" component={AdminTabs} />
       <Stack.Screen name="User"  component={UserTabs} />
 
-      {/* Shared detail screens */}
-      <Stack.Screen name="TambakDetail" component={TambakDetail} />
-      <Stack.Screen name="PerangkatDetail" component={PerangkatDetail} />
+     
     </Stack.Navigator>
   );
 }

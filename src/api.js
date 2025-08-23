@@ -28,42 +28,32 @@ async function ensureTokenValidOrLogout() {
   }
 }
 
-export async function apiFetch(
-  path,
-{ method='GET', headers={}, body, ignore401=false, signal } = {}
-) {
-const token = await AsyncStorage.getItem('auth_token');
+export async function apiFetch(path, { method='GET', headers={}, body, ignore401=false, signal } = {}) {
+  const token = await AsyncStorage.getItem('auth_token');
   const h = { Accept: 'application/json', 'Content-Type': 'application/json', ...headers };
   if (token) h.Authorization = `Bearer ${token}`;
 
-  
   const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: h,
-    body: body ? JSON.stringify(body) : undefined,
-    signal,
+    method, headers: h, body: body ? JSON.stringify(body) : undefined, signal,
   });
 
-  
   const text = await res.text();
   let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
 
   if (res.status === 401 || res.status === 403) {
-    // ⬇️ jangan auto-logout jika diminta diamkan 401
     if (!ignore401) {
-      // ← log out seperti sebelumnya (hapus token + reset ke login kalau kamu lakukan di sini)
       await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
-      // kalau kamu punya resetToLogin di sini, boleh panggil
-      // resetToLogin();
+      // resetToLogin(); // aktifkan kalau mau langsung ke login
     }
-    const err = new Error(data?.message || 'Unauthorized');
-    err.status = res.status;
+    const err = new Error(extractValidationMessage(data, res.status) || 'Unauthorized');
+    err.status = res.status; err.data = data;
     throw err;
   }
 
   if (!res.ok) {
-    const err = new Error(data?.message || `HTTP ${res.status}`);
-    err.status = res.status;
+    const msg = extractValidationMessage(data, res.status);
+    const err = new Error(msg);
+    err.status = res.status; err.data = data;
     throw err;
   }
 
@@ -212,3 +202,35 @@ export const userApi = {
   remove: (id) => apiFetch(`/api/users/${id}`, { method: 'DELETE' }),
   getById: (id) => apiFetch(`/api/users/${id}`),
 };
+
+function extractValidationMessage(data, fallbackStatus) {
+  if (!data) return null;
+
+  // Sequelize ValidationError
+  if (Array.isArray(data.errors) && data.errors.length) {
+    const msgs = data.errors.map(e => e.message || e.msg || JSON.stringify(e)).join(', ');
+    return msgs;
+  }
+
+  // Zod (issues)
+  if (Array.isArray(data.issues) && data.issues.length) {
+    const msgs = data.issues.map(i => {
+      const path = Array.isArray(i.path) ? i.path.join('.') : i.path;
+      return `${path ? `${path}: ` : ''}${i.message}`;
+    }).join(', ');
+    return msgs;
+  }
+
+  // Joi/celebrate (details)
+  if (data.details && Array.isArray(data.details)) {
+    const msgs = data.details.map(d => d.message).join(', ');
+    return msgs;
+  }
+
+  // Umum
+  if (typeof data.message === 'string' && data.message) return data.message;
+
+  return fallbackStatus ? `HTTP ${fallbackStatus}` : 'Validation error';
+}
+
+

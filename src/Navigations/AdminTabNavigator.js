@@ -1,14 +1,16 @@
+// src/Navigations/AdminTabs.js
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { CommonActions, StackActions } from '@react-navigation/native';
 
 import Dashboard from '../Screens/Admins/Dashboards/Dashboard';
 import ManajementPerangkat from '../Screens/Admins/ManajementPerangkat/ManajementPerangkat';
 import PerangkatDetail from '../Screens/Admins/ManajementPerangkat/PerangkatDetail';
 import ManajementTambak from '../Screens/Admins/ManajementTambak/ManajementTambak';
 import TambakDetail from '../Screens/Admins/ManajementTambak/TambakDetails';
-
+import PilihLokasi from '../Screens/Admins/ManajementTambak/PilihLokasi';
 import { PerangkatIcons, TambakIcons, MapIcons, Backtab } from '../Assets/Svg';
 
 const Tab = createBottomTabNavigator();
@@ -16,17 +18,16 @@ const TambakStackNav = createNativeStackNavigator();
 const PerangkatStackNav = createNativeStackNavigator();
 const { width } = Dimensions.get('window');
 
-/* -------- Tambak Stack: List -> Detail -------- */
 function TambakStack() {
   return (
     <TambakStackNav.Navigator screenOptions={{ headerShown: false }}>
       <TambakStackNav.Screen name="TambakList" component={ManajementTambak} />
       <TambakStackNav.Screen name="TambakDetail" component={TambakDetail} />
+      <TambakStackNav.Screen name="PilihLokasi" component={PilihLokasi} />
     </TambakStackNav.Navigator>
   );
 }
 
-/* -------- Perangkat Stack: List -> Detail -------- */
 function PerangkatStack() {
   return (
     <PerangkatStackNav.Navigator screenOptions={{ headerShown: false }}>
@@ -36,11 +37,14 @@ function PerangkatStack() {
   );
 }
 
-/* -------- Custom Tab Bar (tetap sama) -------- */
-// ... tetap
+const ROOT_SCREENS = {
+  Perangkat: 'PerangkatList',
+  Tambak: 'TambakList',
+  Dashboard: null,
+};
 
 const CustomTabBar = ({ state, descriptors, navigation }) => {
-  // helper: ambil nama screen terdalam dari sebuah route (support nested stack di dalam tab)
+  // deep name helper (aman karena pakai optional chaining)
   const getDeepActiveRouteName = (routeObj) => {
     let r = routeObj;
     while (r?.state?.routes && Number.isInteger(r.state.index)) {
@@ -49,13 +53,63 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     return r?.name;
   };
 
-  const focusedRouteObj = state.routes[state.index];      // 'Dashboard' | 'Perangkat' | 'Tambak'
-  const deepName = getDeepActiveRouteName(focusedRouteObj); // 'PerangkatList' | 'PerangkatDetail' | 'TambakList' | 'TambakDetail'
+  // ambil key child stack dari global nav state
+  const getChildStackKey = (tabName) => {
+    const navState = navigation.getState(); // state root (tab navigator)
+    const tabRoute = navState?.routes?.find?.((r) => r.name === tabName);
+    return tabRoute?.state?.key; // bisa undefined jika belum ada child state
+  };
 
-  // ⛔ Sembunyikan tab bar saat masuk detail
+  // pabrik handler onPress
+  const onPressFactory = (route, index) => () => {
+    const isFocused = state.index === index;
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (event.defaultPrevented) return;
+
+    const root = ROOT_SCREENS[route.name];
+
+    if (!isFocused) {
+      // pindah tab + arahkan ke root screen stack tsb (kalau ada)
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: route.name,
+          params: root ? { screen: root } : undefined,
+        })
+      );
+      return;
+    }
+
+    // sudah di tab yang sama
+    if (route.name === 'Dashboard') {
+      navigation.navigate('Dashboard');
+      return;
+    }
+
+    // popToTop pada child stack (kalau sudah punya state)
+    const childKey = getChildStackKey(route.name);
+    if (childKey) {
+      navigation.dispatch({
+        ...StackActions.popToTop(),
+        target: childKey,
+      });
+    } else {
+      // belum ada child state -> pastikan di root juga
+      navigation.dispatch(
+        CommonActions.navigate({
+          name: route.name,
+          params: root ? { screen: root } : undefined,
+        })
+      );
+    }
+  };
+
+  const focusedRouteObj = state.routes[state.index];
+  const deepName = getDeepActiveRouteName(focusedRouteObj);
+
   const shouldHideTab =
     deepName === 'PerangkatDetail' ||
-    deepName === 'TambakDetail';
+    deepName === 'TambakDetail' ||
+    deepName === 'PilihLokasi';
 
   if (shouldHideTab) return null;
 
@@ -65,11 +119,6 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
           const isCenter = route.name === 'Dashboard';
-
-          const onPress = () => {
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
-          };
 
           const getIcon = () => {
             switch (route.name) {
@@ -83,9 +132,13 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           if (isCenter) return null;
 
           return (
-            <TouchableOpacity key={route.key} onPress={onPress} style={styles.tab}>
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPressFactory(route, index)}
+              style={styles.tab}
+            >
               <View style={styles.iconWrapper}>{getIcon()}</View>
-              <Text style={[styles.label, isFocused ? styles.labelFocused : {}]}>{route.name}</Text>
+              <Text style={[styles.label, isFocused ? styles.labelFocused : null]}>{route.name}</Text>
             </TouchableOpacity>
           );
         })}
@@ -93,13 +146,16 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
 
       <Backtab style={styles.backtab} />
 
-      <TouchableOpacity onPress={() => navigation.navigate('Dashboard')} style={styles.centerTab}>
+      {/* Tombol tengah -> Dashboard */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Dashboard')}
+        style={styles.centerTab}
+      >
         <View style={styles.centerIconWrapper}><MapIcons /></View>
       </TouchableOpacity>
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   tabContainer: { position: 'absolute', bottom: 0, width, height: 120, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'flex-end' },
@@ -113,7 +169,6 @@ const styles = StyleSheet.create({
   labelFocused: { color: 'white', fontWeight: '800' },
 });
 
-/* -------- Tabs: pakai Stack di Perangkat & Tambak -------- */
 const AdminTabs = () => {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
