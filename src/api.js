@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import { resetToLogin } from './Navigations/navigationService';
 
-const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.100.29:3006')
+const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.1.18:3006')
     
 
 function nowSec() { return Math.floor(Date.now() / 1000); }
@@ -234,3 +234,31 @@ function extractValidationMessage(data, fallbackStatus) {
 }
 
 
+
+export async function getMe() {
+  return apiFetch('/api/auth/me');
+}
+
+export async function listPerangkatByTambak(id_tambak, { page = 1, limit = 10 } = {}) {
+  const q = new URLSearchParams({ page, limit, id_tambak });
+  return apiFetch(`/api/perangkat?${q.toString()}`);
+}
+
+// ...
+export async function aiSummary({ sensor, forecast, meta }) {
+  return apiFetch('/api/ai/summary', {
+    method: 'POST',
+    body: { sensor, forecast, meta }
+  });
+}
+
+export function getHistoryTrend(id_tambak, { days = 7, to = new Date() } = {}) {
+  const from = new Date(to.getTime() - days * 24 * 3600 * 1000);
+  const q = new URLSearchParams({
+    ID_Tambak: String(id_tambak),
+    from: from.toISOString(),
+    to: to.toISOString(),
+    days: String(days),            // ← kirim ke server (akan di-clamp max 7)
+  }).toString();
+  return apiFetch(`/api/history/trend?${q}`);
+}

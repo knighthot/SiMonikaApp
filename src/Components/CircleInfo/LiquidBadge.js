@@ -1,6 +1,6 @@
 // Components/CircleInfo/LiquidBadge.js
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Text, Animated, Easing } from 'react-native';
+ import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 // gelombang halus pakai quadratic bezier
@@ -33,8 +33,29 @@ const STATUS = {
 
 const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-const LiquidBadge = ({ size = 120, status = 'baik', label = 'Baik' }) => {
-  const cfg = useMemo(() => STATUS[status] || STATUS.baik, [status]);
+
+ const LiquidBadge = ({
+   size = 120,
+   status = 'baik',
+   label = 'Baik',
+   // opsional override:
+   ringColor,
+   textColor,
+   waveColors, // [back, front]
+   level,      // 0..1 (naiknya air)
+   amp,        // amplitudo gelombang relatif ukuran
+ }) => {
+
+  const base = useMemo(() => STATUS[status] || STATUS.baik, [status]);
+  const cfg = {
+    ring: ringColor ?? base.ring,
+    text: textColor ?? base.text,
+    waves: waveColors ?? base.waves,
+    level: typeof level === 'number' ? level : base.level,
+    amp: typeof amp === 'number' ? amp : base.amp,
+  };
+
+
 
   // wavelength lebih pendek → terasa lebih “hidup”
   const WAVELEN_FRONT = size * 0.85;
