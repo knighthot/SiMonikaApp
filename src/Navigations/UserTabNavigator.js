@@ -91,7 +91,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
 
       <Backtab style={styles.backtab} />
 
-      <TouchableOpacity onPress={() => navigation.navigate('DashboardUser')} style={styles.centerTab}>
+      <TouchableOpacity onPress={() => navigation.navigate('DashboardUser', { screen: 'DashboardHome' })} style={styles.centerTab}>
         <View style={styles.centerIconWrapper}><MapIcons /></View>
       </TouchableOpacity>
     </View>

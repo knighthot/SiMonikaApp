@@ -177,8 +177,11 @@ useEffect(() => {
   };
 
   // refs
-  const listRef = useRef(null);
-  const scrollToEnd = () => requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+ const listRef = useRef(null);
+const firstAutoScrollDone = useRef(false);
+
+const scrollToEnd = (animated = true) =>
+  requestAnimationFrame(() => listRef.current?.scrollToEnd?.({ animated }));
 
   /* ---------- Load session list on focus ---------- */
   useFocusEffect(
@@ -252,6 +255,14 @@ useEffect(() => {
 
     return () => { on = false; };
   }, [sessionId]);
+
+  useEffect(() => {
+  if (!initialLoaded) return;
+  // Baru masuk / ganti sesi → scroll ke bawah TANPA animasi
+  scrollToEnd(false);
+  firstAutoScrollDone.current = true;
+}, [initialLoaded]);
+
 
   /* ---------- Auto-send initial prompt AFTER messages loaded (DEDUPE) ---------- */
  useEffect(() => {
@@ -501,8 +512,9 @@ useEffect(() => {
         contentContainerStyle={{ paddingTop: 10, paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-        onContentSizeChange={scrollToEnd}
-        onLayout={scrollToEnd}
+    onContentSizeChange={() => scrollToEnd(firstAutoScrollDone.current)}
+onLayout={() => scrollToEnd(firstAutoScrollDone.current)}
+
         ListEmptyComponent={
           !loadingSess && (
             <View style={{ padding: 24 }}>

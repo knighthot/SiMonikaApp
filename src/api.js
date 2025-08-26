@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import { resetToLogin } from './Navigations/navigationService';
 
-const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.1.18:3006')
+const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.1.101:3006')
     
 
 function nowSec() { return Math.floor(Date.now() / 1000); }
@@ -262,3 +262,4 @@ export function getHistoryTrend(id_tambak, { days = 7, to = new Date() } = {}) {
   }).toString();
   return apiFetch(`/api/history/trend?${q}`);
 }
+
