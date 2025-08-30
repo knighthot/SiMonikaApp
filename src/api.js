@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import { resetToLogin } from './Navigations/navigationService';
 
-const BASE_URL = (Config.API_BASE_URL|| 'http://192.168.1.101:3006')
-    
+const BASE_URL = (Config.API_BASE_URL || 'http://192.168.100.29:3006')
+
 
 function nowSec() { return Math.floor(Date.now() / 1000); }
 
@@ -28,25 +28,27 @@ async function ensureTokenValidOrLogout() {
   }
 }
 
-export async function apiFetch(path, { method='GET', headers={}, body, ignore401=false, signal } = {}) {
+export async function apiFetch(path, { method = 'GET', headers = {}, body, ignore401 = false, signal } = {}) {
   const token = await AsyncStorage.getItem('auth_token');
   const h = { Accept: 'application/json', 'Content-Type': 'application/json', ...headers };
   if (token) h.Authorization = `Bearer ${token}`;
+  
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method, headers: h, body: body ? JSON.stringify(body) : undefined, signal,
   });
 
   const text = await res.text();
-  let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch { }
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     if (!ignore401) {
       await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
       // resetToLogin(); // aktifkan kalau mau langsung ke login
     }
     const err = new Error(extractValidationMessage(data, res.status) || 'Unauthorized');
     err.status = res.status; err.data = data;
+    err.data = data;
     throw err;
   }
 
@@ -54,6 +56,7 @@ export async function apiFetch(path, { method='GET', headers={}, body, ignore401
     const msg = extractValidationMessage(data, res.status);
     const err = new Error(msg);
     err.status = res.status; err.data = data;
+    err.data = data;
     throw err;
   }
 
@@ -77,7 +80,11 @@ export async function apiLogin(username, password) {
   // simpan token+user
   await AsyncStorage.setItem('auth_token', data.token);
   if (data.user) await AsyncStorage.setItem('auth_user', JSON.stringify(data.user));
+
+  console.log(data);
   return data;
+
+
 }
 
 export async function logout() {
@@ -119,7 +126,7 @@ export async function getChatMessages(sessionId, { limit = 50, before, order = '
 
 //perangkat
 export async function createPerangkat({ ID_PerangkatIot, Nama_LokasiPerangkat }) {
-const token = await AsyncStorage.getItem('auth_token');
+  const token = await AsyncStorage.getItem('auth_token');
   const res = await fetch(`${BASE_URL}/api/perangkat`, {
     method: 'POST',
     headers: {
@@ -137,14 +144,14 @@ const token = await AsyncStorage.getItem('auth_token');
     throw err;
   }
   // backend mengembalikan { id: <uuid> }
-  return data; 
+  return data;
 }
 
 export async function listPerangkat({ page = 1, limit = 20 } = {}) {
   const token = await AsyncStorage.getItem('auth_token');
-    console.log(token);
+  console.log(token);
   return apiFetch(`/api/perangkat?page=${page}&limit=${limit}`);
-  
+
 }
 
 export async function getPerangkat(id) {
@@ -175,7 +182,7 @@ export const tambakApi = {
       return await apiFetch(base);
     } catch (e) {
       if (e.status === 403) {
-   throw new Error('Hanya ADMIN yang boleh melihat daftar user');
+        throw new Error('Hanya ADMIN yang boleh melihat daftar user');
       }
       throw e;
     }
@@ -184,6 +191,7 @@ export const tambakApi = {
   update: (id, payload) => apiFetch(`/api/tambak/${id}`, { method: 'PUT', body: payload }),
   remove: (id) => apiFetch(`/api/tambak/${id}`, { method: 'DELETE' }),
   getById: (id) => apiFetch(`/api/tambak/${id}`),
+  updateSelf: (payload) => apiFetch('/api/tambak/self', { method: 'PUT', body: payload }),
 };
 
 /* ===== Users (admin-only; kasih pesan jelas kalau 403) ===== */
@@ -201,6 +209,7 @@ export const userApi = {
   update: (id, payload) => apiFetch(`/api/users/${id}`, { method: 'PUT', body: payload }),
   remove: (id) => apiFetch(`/api/users/${id}`, { method: 'DELETE' }),
   getById: (id) => apiFetch(`/api/users/${id}`),
+  updateMe: (payload) => apiFetch('/api/users/me', { method: 'PUT', body: payload }),
 };
 
 function extractValidationMessage(data, fallbackStatus) {
@@ -262,4 +271,3 @@ export function getHistoryTrend(id_tambak, { days = 7, to = new Date() } = {}) {
   }).toString();
   return apiFetch(`/api/history/trend?${q}`);
 }
-

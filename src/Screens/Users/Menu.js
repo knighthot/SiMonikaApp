@@ -47,18 +47,18 @@ const Menu = ({ navigation: navFromProps }) => {
   };
 
   const goPengaturanAkun = async () => {
-  const seen = await AsyncStorage.getItem('onboard_settings_seen');
-  if (seen === '1') {
-    navigation.navigate('PengaturanAkun');
-  } else {
-    navigation.navigate('PengaturanAkunOnboarding');
-  }
-};
+    const seen = await AsyncStorage.getItem('onboard_settings_seen');
+    if (seen === '1') {
+      navigation.navigate('Menu', { screen: 'PengaturanAkun' });
+    } else {
+      navigation.navigate('Menu', { screen: 'OnboardingPengaturanAkun' });
+    }
+  };
 
   const doLogout = async () => {
     try {
       await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
-    } catch {}
+    } catch { }
     doResetToLogin();
   };
 
@@ -80,13 +80,13 @@ const Menu = ({ navigation: navFromProps }) => {
         <Item
           title="History Ramalan Air"
           icon="time-outline"
-          onPress={() => navigation.navigate?.('HistoryRamalan')}
+          onPress={() => navigation.navigate?.('HistoryPeramalan')}
         />
 
         <Item
           title="Pengaturan Akun"
           icon="settings-outline"
-      onPress={goPengaturanAkun} 
+          onPress={goPengaturanAkun}
         />
 
         {/* tombol keluar lebih pendek & merah */}
@@ -95,7 +95,7 @@ const Menu = ({ navigation: navFromProps }) => {
           color="#B83434"
           icon="log-out-outline"
           width="55%"
-       onPress={onLogout}
+          onPress={onLogout}
         />
       </View>
     </SafeAreaView>

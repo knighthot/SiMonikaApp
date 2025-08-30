@@ -8,6 +8,7 @@ import Menu from '../Screens/Users/Menu';
 import PengaturanAkun from '../Screens/Users/Pengaturan/PengaturanAkun';
 import OnboardingPengaturanAkun from '../Screens/Users/Pengaturan/OnboardingPengaturanAkun';
 import ChatAi from '../Screens/Users/ChatAi/ChatAi';
+import HistoryPeramalan from '../Screens/Users/History/HistoryPeramalan';
 import MonitoringIot from '../Screens/Users/Monitoring/MonitoringIot';
 import { PerangkatIcons, TambakIcons, MapIcons, Backtab } from '../Assets/Svg';
 
@@ -32,6 +33,7 @@ function MenuStack() {
       <Stack.Screen name="MenuHome" component={Menu} />
       <Stack.Screen name="PengaturanAkun" component={PengaturanAkun} />
       <Stack.Screen name="OnboardingPengaturanAkun" component={OnboardingPengaturanAkun} />
+      <Stack.Screen name="HistoryPeramalan" component={HistoryPeramalan} />
     </Stack.Navigator>
   );
 }
