@@ -32,7 +32,7 @@ export async function apiFetch(path, { method = 'GET', headers = {}, body, ignor
   const token = await AsyncStorage.getItem('auth_token');
   const h = { Accept: 'application/json', 'Content-Type': 'application/json', ...headers };
   if (token) h.Authorization = `Bearer ${token}`;
-  
+
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method, headers: h, body: body ? JSON.stringify(body) : undefined, signal,

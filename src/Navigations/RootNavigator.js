@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import ChartFullScreen from '../Screens/Users/History/HistoryPeramalan';
 import SplashScreen from '../Screens/SplashScreens/SplashScreens';
 import LoginScreen from '../Auth/LoginScreens';
 import AdminTabs from './AdminTabNavigator';
@@ -59,12 +59,12 @@ export default function RootNavigator() {
           />
         )}
       </Stack.Screen>
-
+      <Stack.Screen name="ChartFull" component={ChartFullScreen} options={{ headerShown: false }} />
       {/* Kedua root tab SELALU terdaftar (aman untuk reset) */}
       <Stack.Screen name="Admin" component={AdminTabs} />
-      <Stack.Screen name="User"  component={UserTabs} />
+      <Stack.Screen name="User" component={UserTabs} />
 
-     
+
     </Stack.Navigator>
   );
 }

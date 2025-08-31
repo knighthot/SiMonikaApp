@@ -48,6 +48,12 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     return r?.name;
   };
 
+  const focusedDescriptor = descriptors[state.routes[state.index].key];
+  const hiddenByStyle =
+    focusedDescriptor?.options?.tabBarStyle?.display === 'none';
+
+  if (hiddenByStyle) return null;
+
   const focusedRouteObj = state.routes[state.index];
   const focusedRootName = focusedRouteObj?.name;                 // 'DashboardUser' | 'ChatAi' | 'Menu'
   const nestedActiveName = getDeepActiveRouteName(focusedRouteObj); // 'DashboardHome' | 'MonitoringIot' | 'MenuHome' | 'OnboardingPengaturanAkun'
@@ -55,7 +61,8 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   // Sembunyikan tab bar hanya khusus yang kamu mau (contoh: onboarding & ChatAi)
   const shouldHideTab =
     focusedRootName === 'ChatAi' ||
-    nestedActiveName === 'OnboardingPengaturanAkun';
+    nestedActiveName === 'OnboardingPengaturanAkun' ||
+    nestedActiveName === 'HistoryPeramalan';
 
   if (shouldHideTab) return null;
 
@@ -103,7 +110,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
 /* ---------- Tabs: DashboardUser pakai DashboardStack ---------- */
 export default function UserTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
+    <Tab.Navigator id="RootTab" screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} />}>
       <Tab.Screen name="DashboardUser" component={DashboardStack} />
       <Tab.Screen name="ChatAi" component={ChatAi} />
       <Tab.Screen name="Menu" component={MenuStack} />

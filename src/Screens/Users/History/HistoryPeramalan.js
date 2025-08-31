@@ -1,43 +1,53 @@
 // screens/HistoryPeramalan.js
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import {
     View, Text, TouchableOpacity, SafeAreaView, FlatList,
-    RefreshControl, Modal, ActivityIndicator, Dimensions,
+    RefreshControl, Modal, useWindowDimensions
 } from 'react-native';
+import {
+    OrientationLocker,
+    PORTRAIT,
+    LANDSCAPE_LEFT,
+    lockToPortrait,
+    lockToLandscape,
+} from 'react-native-orientation-locker';
+
 import { LineChart } from 'react-native-chart-kit';
 import { getMe, apiFetch, getHistoryTrend } from '../../../api';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { StatusBar, BackHandler } from 'react-native';
 
-const screenW = Dimensions.get('window').width;
-const H_PAD = 20; // padding horizontal (px) -> selaras dengan px-5
+const H_PAD = 20;
 
-/* ====== Kolom tabel (proporsi agar selalu muat) ====== */
+// ===== Fixed labels 1..31 =====
+const FIXED_COUNT = 31;
+const FIXED_LABELS = Array.from({ length: FIXED_COUNT }, (_, i) => String(i + 1));
+const make31 = () => Array(FIXED_COUNT).fill(null);
+const toNum = (v, dec) => (v == null ? null : Number(Number(v).toFixed(dec)));
+
+/** ====== Kolom tabel ====== */
 const COLS = [
     { key: '#', flex: 0.4, align: 'center' },
     { key: 'TANGGAL', flex: 1.5, align: 'left' },
-    { key: 'PH', flex: 0.5, align: 'center' },
+    { key: 'PH', flex: 0.6, align: 'center' },
     { key: 'SUHU', flex: 0.9, align: 'center' },
     { key: 'KEKERUHAN', flex: 1.1, align: 'center' },
-    { key: 'SANITASI', flex: 1.0, align: 'center' },
+    { key: 'SALINITAS', flex: 1.0, align: 'center' },
     { key: 'RESIKO', flex: 1.1, align: 'center' },
 ];
 
-/* ---------------- Skeleton sederhana ---------------- */
-const Skeleton = ({ h = 16, w = '100%', br = 12, style }) => (
-    <View style={[{ height: h, width: w, borderRadius: br, backgroundColor: '#e5e7eb' }, style]} />
-);
-const SkeletonRow = () => (
-    <View style={{ paddingHorizontal: H_PAD, paddingVertical: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {COLS.map((c, i) => (
-                <View key={i} style={{ flex: c.flex, paddingVertical: 2, paddingHorizontal: 6 }}>
-                    <Skeleton h={12} />
-                </View>
-            ))}
-        </View>
-    </View>
-);
+/** ---------- util format angka ---------- */
+const nf = (dec = 1) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: dec, minimumFractionDigits: 0 });
+const fmt = (v, dec = 1) => (v == null ? null : nf(dec).format(v));
+const display = {
+    ph: (v) => fmt(v, 2),
+    suhu: (v) => fmt(v, 1),
+    salinitas: (v) => fmt(v, 1),
+    kekeruhan: (v) => fmt(v, 0),
+    wqi: (v) => fmt(v, 1),
+};
 
-/* ------------- Modal filter tanggal cepat ------------- */
+/** ------------- Modal filter tanggal cepat ------------- */
 const QuickDateModal = ({ visible, onClose, onPick }) => (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
         <View className="flex-1 bg-black/40 items-center justify-center px-6">
@@ -63,20 +73,85 @@ const QuickDateModal = ({ visible, onClose, onPick }) => (
     </Modal>
 );
 
-/* ----------------- Util kecil ----------------- */
+/** ----------------- Util kecil ----------------- */
 const monthLabel = (d) => d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
 const riskText = (row) => {
     const bad =
-        (row.pH && (row.pH < 6.5 || row.pH > 8.5)) ||
-        (row.salinitas && (row.salinitas < 15 || row.salinitas > 35)) ||
-        (row.suhu && (row.suhu < 25 || row.suhu > 34)) ||
-        (row.kekeruhan && row.kekeruhan > 70);
+        (row.ph != null && (row.ph < 6.5 || row.ph > 8.5)) ||
+        (row.salinitas != null && (row.salinitas < 15 || row.salinitas > 35)) ||
+        (row.suhu != null && (row.suhu < 25 || row.suhu > 34)) ||
+        (row.kekeruhan != null && row.kekeruhan > 70);
     return bad ? 'Tinggi' : 'Normal';
 };
-const colorLegend = { pH: '#1d4ed8', salinitas: '#16a34a', suhu: '#f59e0b', kekeruhan: '#7e22ce' };
+
+const colorLegend = {
+    pH: '#1d4ed8',
+    salinitas: '#16a34a',
+    suhu: '#f59e0b',
+    kekeruhan: '#7e22ce'
+};
+
+/** ---------------- Skeleton sederhana ---------------- */
+const Skeleton = ({ h = 16, w = '100%', br = 12, style }) => (
+    <View style={[{ height: h, width: w, borderRadius: br, backgroundColor: '#e5e7eb' }, style]} />
+);
+const SkeletonRow = () => (
+    <View style={{ paddingHorizontal: H_PAD, paddingVertical: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {COLS.map((c, i) => (
+                <View key={i} style={{ flex: c.flex, paddingVertical: 2, paddingHorizontal: 6 }}>
+                    <Skeleton h={12} />
+                </View>
+            ))}
+        </View>
+    </View>
+);
 
 const HistoryPeramalan = () => {
+    const { width: winW, height: winH } = useWindowDimensions();
     const [me, setMe] = useState(null);
+    const [perangkat, setPerangkat] = useState(null);
+    const navigation = useNavigation();
+
+    // back: keluar fullscreen dulu
+    useEffect(() => {
+        const onBack = () => {
+            if (isLandscape) { setIsLandscape(false); return true; }
+            return false;
+        };
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+        return () => sub.remove();
+    }, [isLandscape]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBeforeRemove = () => {
+                setIsLandscape(false);
+                try { lockToPortrait(); } catch { }
+            };
+            const unsubBefore = navigation.addListener('beforeRemove', onBeforeRemove);
+            const unsubBlur = navigation.addListener('blur', onBeforeRemove);
+            return () => { unsubBefore(); unsubBlur(); try { lockToPortrait(); } catch { }; setIsLandscape(false); };
+        }, [navigation])
+    );
+
+    // hide/show TabBar + StatusBar saat toggle
+    useEffect(() => {
+        const parent = navigation.getParent();
+        if (isLandscape) {
+            try { lockToLandscape(); } catch { }
+            parent?.setOptions?.({ tabBarStyle: { display: 'none' } });
+            StatusBar.setHidden(true, 'fade');
+        } else {
+            try { lockToPortrait(); } catch { }
+            parent?.setOptions?.({ tabBarStyle: undefined });
+            StatusBar.setHidden(false, 'fade');
+        }
+        return () => {
+            parent?.setOptions?.({ tabBarStyle: undefined });
+            StatusBar.setHidden(false, 'fade');
+        };
+    }, [isLandscape, navigation]);
 
     // rentang tanggal
     const [range, setRange] = useState(() => {
@@ -95,46 +170,172 @@ const HistoryPeramalan = () => {
     const [filter, setFilter] = useState('SEMUA');
     const [openFilterDate, setOpenFilterDate] = useState(false);
 
+    // Toggle orientasi
+    const [isLandscape, setIsLandscape] = useState(false);
+    const toggleOrientation = () => setIsLandscape(v => !v);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const onBack = () => {
+                if (isLandscape) { setIsLandscape(false); try { lockToPortrait(); } catch { }; return true; }
+                return false;
+            };
+            const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+            return () => sub.remove();
+        }, [isLandscape])
+    );
+
+    // ---- loader utama ----
     const loadAll = useCallback(async () => {
         try {
             setLoading(true);
             const m = me || (await getMe());
             if (!me) setMe(m);
             const idTambak = m?.ID_Tambak || m?.TB_Tambak?.ID_Tambak;
+            const idIot = perangkat?.ID_PerangkatIot || m?.ID_PerangkatIot || m?.TB_PerangkatIot?.ID_PerangkatIot;
 
-            const t = await getHistoryTrend(idTambak, { days: 31, to: range.to });
-            setTrend(t || {});
+            // 1) endpoint terbaru
+            let latest = null;
+            try {
+                latest = await apiFetch(
+                    `/api/history-peramalan/latest?id_tambak=${encodeURIComponent(String(idTambak))}` +
+                    (idIot ? `&id_perangkat_iot=${encodeURIComponent(String(idIot))}` : '')
+                );
+            } catch { }
 
-            const qs = new URLSearchParams({
-                mode: 'table',
-                ID_Tambak: String(idTambak),
-                from: range.from.toISOString(),
-                to: range.to.toISOString(),
-                gap: '1',  // ambil tiap 1 record
-            }).toString();
+            let arr = [];
+            if (Array.isArray(latest)) arr = latest;
+            else if (Array.isArray(latest?.data)) arr = latest.data;
 
-            const list = await apiFetch(`/api/history-peramalan?${qs}`);
-            const dataRows = list?.rows || [];
-            setRows(
-                dataRows.map((r, idx) => ({
+            if (arr.length) {
+                // filter in-range
+                const fromMs = new Date(range.from.toISOString().slice(0, 10)).getTime();
+                const toMs = new Date(range.to.toISOString().slice(0, 10)).getTime();
+                const inRange = arr.filter(r => {
+                    const t = new Date(r.tanggal + 'T00:00:00Z').getTime();
+                    return t >= fromMs && t <= toMs;
+                });
+
+                // isi tabel
+                setRows(inRange.map((r, idx) => ({
+                    id: `${r.tanggal}-${idx}`,
                     no: idx + 1,
                     tanggal: r.tanggal,
-                    pH: r.pH,
-                    suhu: r.suhu,
-                    kekeruhan: r.kekeruhan,
-                    salinitas: r.salinitas,
-                    // tampilkan risk_label di kolom RESIKO
-                    risk: r.risk || 'Normal',
-                }))
-            );
+                    ph: display.ph(r.ph) ?? null,
+                    suhu: display.suhu(r.suhu) ?? null,
+                    salinitas: display.salinitas(r.salinitas) ?? null,
+                    kekeruhan: display.kekeruhan(r.kekeruhan) ?? null,
+                    wqi: display.wqi(r.wqi) ?? null,
+                    risk: riskText(r),
+                })));
 
+                // ====== BANGUN ARRAY 1..31 SESUAI TANGGAL ======
+                const phArr = make31();
+                const salArr = make31();
+                const suhArr = make31();
+                const kerArr = make31();
+
+                inRange.forEach(r => {
+                    const day = new Date(r.tanggal).getDate(); // 1..31
+                    const i = day - 1;
+                    if (i >= 0 && i < 31) {
+                        if (r.ph != null) phArr[i] = toNum(r.ph, 2);
+                        if (r.salinitas != null) salArr[i] = toNum(r.salinitas, 1);
+                        if (r.suhu != null) suhArr[i] = toNum(r.suhu, 1);
+                        if (r.kekeruhan != null) kerArr[i] = Math.round(Number(r.kekeruhan));
+                    }
+                });
+
+                setTrend({
+                    ph: phArr, salinitas: salArr, suhu: suhArr, kekeruhan: kerArr,
+                    labels: FIXED_LABELS, count: FIXED_COUNT,
+                });
+
+            } else {
+                // 2) fallback endpoint lama (berbasis tanggal → tetap mapping ke 1..31)
+                const qs = new URLSearchParams({
+                    mode: 'table',
+                    ID_Tambak: String(idTambak),
+                    from: range.from.toISOString(),
+                    to: range.to.toISOString(),
+                    gap: '1',
+                }).toString();
+                const list = await apiFetch(`/api/history-peramalan?${qs}`);
+                const dataRows = list?.rows || [];
+
+                setRows(
+                    dataRows.map((r, idx) => ({
+                        id: r.id || `${r.tanggal}-${idx}`,
+                        no: idx + 1,
+                        tanggal: r.tanggal,
+                        ph: display.ph(r.pH ?? r.ph) ?? null,
+                        suhu: display.suhu(r.suhu) ?? null,
+                        salinitas: display.salinitas(r.salinitas) ?? null,
+                        kekeruhan: display.kekeruhan(r.kekeruhan) ?? null,
+                        wqi: display.wqi(r.wqi) ?? null,
+                        risk: r.risk || riskText({
+                            ph: r.pH ?? r.ph, suhu: r.suhu, salinitas: r.salinitas, kekeruhan: r.kekeruhan,
+                        }),
+                    }))
+                );
+
+                // mapping tanggal → slot 1..31
+                const phArr = make31();
+                const salArr = make31();
+                const suhArr = make31();
+                const kerArr = make31();
+
+                dataRows.forEach(r => {
+                    if (!r?.tanggal) return;
+                    const day = new Date(r.tanggal).getDate();
+                    const i = day - 1;
+                    if (i >= 0 && i < 31) {
+                        const ph = r.pH ?? r.ph;
+                        if (ph != null) phArr[i] = toNum(ph, 2);
+                        if (r.salinitas != null) salArr[i] = toNum(r.salinitas, 1);
+                        if (r.suhu != null) suhArr[i] = toNum(r.suhu, 1);
+                        if (r.kekeruhan != null) kerArr[i] = Math.round(Number(r.kekeruhan));
+                    }
+                });
+
+                // kalau benar-benar kosong, terakhir coba getHistoryTrend (optional)
+                const noAny =
+                    phArr.every(v => v == null) &&
+                    salArr.every(v => v == null) &&
+                    suhArr.every(v => v == null) &&
+                    kerArr.every(v => v == null);
+
+                if (noAny) {
+                    try {
+                        const t = await getHistoryTrend(idTambak, { days: 31, to: range.to });
+                        // fallback ini tidak punya tanggal → cukup pad ke 31 dari kiri
+                        const to31 = (a, dec, roundInt = false) => {
+                            if (!Array.isArray(a)) return make31();
+                            const b = a.slice(0, 31).map(v => (v == null ? null : (roundInt ? Math.round(Number(v)) : Number(Number(v).toFixed(dec)))));
+                            return b.length < 31 ? [...b, ...Array(31 - b.length).fill(null)] : b;
+                        };
+                        setTrend({
+                            ph: to31(t?.ph, 2),
+                            salinitas: to31(t?.salinitas, 1),
+                            suhu: to31(t?.suhu, 1),
+                            kekeruhan: to31(t?.kekeruhan, 0, true),
+                            labels: FIXED_LABELS,
+                            count: FIXED_COUNT
+                        });
+                    } catch {
+                        setTrend({ ph: phArr, salinitas: salArr, suhu: suhArr, kekeruhan: kerArr, labels: FIXED_LABELS, count: FIXED_COUNT });
+                    }
+                } else {
+                    setTrend({ ph: phArr, salinitas: salArr, suhu: suhArr, kekeruhan: kerArr, labels: FIXED_LABELS, count: FIXED_COUNT });
+                }
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [me, range.from, range.to]);
+    }, [me, perangkat, range.from, range.to]);
 
-    React.useEffect(() => { loadAll(); }, [loadAll]);
+    useEffect(() => { loadAll(); }, [loadAll]);
 
     const onRefresh = () => { setRefreshing(true); loadAll(); };
 
@@ -156,65 +357,127 @@ const HistoryPeramalan = () => {
         setTimeout(loadAll, 0);
     };
 
-    /* ---------- siapkan data grafik ---------- */
+    // meta Y-axis
+    const yMeta = useMemo(() => {
+        switch (filter) {
+            case 'PH': return { suffix: '', decimals: 2, format: (v) => Number(v).toFixed(2) };
+            case 'SUHU': return { suffix: '°C', decimals: 1, format: (v) => Number(v).toFixed(1) };
+            case 'SALINITAS': return { suffix: '‰', decimals: 1, format: (v) => Number(v).toFixed(1) };
+            case 'KEKERUHAN': return { suffix: ' NTU', decimals: 0, format: (v) => String(Math.round(Number(v))) };
+            default: return { suffix: '', decimals: 0, format: (v) => String(Math.round(Number(v))) };
+        }
+    }, [filter]);
+
+    /** ---------- data grafik ---------- */
     const chartData = useMemo(() => {
-        const N = 30;
-        const labels = Array.from({ length: N }, (_, i) => `${i + 1}`);
-        const safe = (arr) => (Array.isArray(arr) ? arr : Array(N).fill(null));
-        const ph = safe(trend?.pH || trend?.ph || trend?.PH);
-        const sal = safe(trend?.salinitas || trend?.Salinitas);
-        const suh = safe(trend?.suhu || trend?.Suhu);
-        const ker = safe(trend?.kekeruhan || trend?.Kekeruhan);
+        const labels = FIXED_LABELS;
+        const L = labels.length;
+
+        const toLen = (arr) => {
+            if (!Array.isArray(arr)) return Array(L).fill(null);
+            if (arr.length >= L) return arr.slice(0, L);
+            return [...arr, ...Array(L - arr.length).fill(null)];
+        };
+
+        const ph = toLen(trend?.ph);
+        const sal = toLen(trend?.salinitas);
+        const suh = toLen(trend?.suhu);
+        const ker = toLen(trend?.kekeruhan);
+
         const allSets = [
             { data: ph, color: () => colorLegend.pH, strokeWidth: 3, withDots: true },
             { data: sal, color: () => colorLegend.salinitas, strokeWidth: 3, withDots: true },
             { data: suh, color: () => colorLegend.suhu, strokeWidth: 3, withDots: true },
             { data: ker, color: () => colorLegend.kekeruhan, strokeWidth: 3, withDots: true },
         ];
+
         let datasets = allSets;
         if (filter !== 'SEMUA') {
             const key = filter.toLowerCase();
             const map = ['ph', 'salinitas', 'suhu', 'kekeruhan'];
             datasets = allSets.filter((_, i) => map[i] === key);
         }
+
         return { labels, datasets };
     }, [trend, filter]);
 
-    const chartConfig = {
+    const chartConfig = useMemo(() => ({
         backgroundGradientFrom: '#ffffff',
         backgroundGradientTo: '#ffffff',
-        decimalPlaces: 0,
+        decimalPlaces: yMeta.decimals,
         color: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
         labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
         propsForDots: { r: '2' },
         propsForBackgroundLines: { strokeDasharray: '4 7' },
-        propsForLabels: { fontSize: 9 }, // coba 8–10 sesuai selera
-    };
+        propsForLabels: { fontSize: 9 },
+        formatYLabel: yMeta.format,
+    }), [yMeta]);
 
-    /* ---------- bagian header (selalu muat) ---------- */
+    // size chart
+    const chartWidth = Math.max(420, (winW || 0) - H_PAD * 2);
+    const chartHeight = isLandscape
+        ? Math.max(240, Math.min(winW, winH) - 80)
+        : 230;
+
+    /** ---------- Header (toggle orientasi) ---------- */
     const Header = (
         <View>
-            <Text className="text-[18px] font-extrabold text-[#0a465e] mt-14" style={{ paddingLeft: H_PAD }}>
+            <TouchableOpacity
+                className=' mt-12 w-40 '
+                onPress={() => {
+                    if (isLandscape) {
+                        setIsLandscape(false);
+                        setTimeout(() => navigation.goBack(), 200);
+                    } else {
+                        navigation.goBack();
+                    }
+                }}
+                style={{
+                    position: 'fixed', left: 8, top: 8,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10
+                }}
+            >
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>← Kembali Ke Menu</Text>
+            </TouchableOpacity>
+
+            <Text className="text-[18px] font-extrabold text-[#0a465e] mt-5" style={{ paddingLeft: H_PAD }}>
                 {range.label}
             </Text>
 
             <View style={{ paddingHorizontal: H_PAD, marginTop: 8 }}>
-                {loading ? (
-                    <Skeleton h={220} br={16} />
-                ) : (
-                    <LineChart
-                        data={chartData}
-                        width={Math.max(420, screenW - H_PAD * 2)}  // aman di semua device
-                        height={230}
-                        chartConfig={chartConfig}
-                        bezier
-
-                        withShadow
-                        fromZero
-                        style={{ borderRadius: 16, left: -50 }}
-                        segments={5}
-                    />
-                )}
+                <View style={{ position: 'relative' }}>
+                    {loading ? (
+                        <Skeleton h={isLandscape ? chartHeight : 220} br={16} />
+                    ) : (
+                        <>
+                            <LineChart
+                                data={chartData}
+                                width={chartWidth}
+                                height={chartHeight}
+                                chartConfig={chartConfig}
+                                yAxisSuffix={yMeta.suffix}
+                                bezier
+                                withShadow
+                                fromZero
+                                style={{ borderRadius: 16, left: isLandscape ? 0 : -50 }}
+                                segments={isLandscape ? 6 : 5}
+                            />
+                            <TouchableOpacity
+                                onPress={toggleOrientation}
+                                style={{
+                                    position: 'absolute', right: 8, top: 8,
+                                    backgroundColor: 'rgba(0,0,0,0.6)',
+                                    paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10
+                                }}
+                            >
+                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                                    {isLandscape ? '⤡ Kembali' : '⤢ Layar Penuh'}
+                                </Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
             </View>
 
             {/* Legend hanya saat SEMUA */}
@@ -241,7 +504,7 @@ const HistoryPeramalan = () => {
                 Berdasarkan Parameter :
             </Text>
 
-            {/* tombol filter parameter — wrap otomatis */}
+            {/* tombol filter parameter */}
             <View className="flex-row flex-wrap justify-around" style={{ paddingHorizontal: H_PAD }}>
                 {['PH', 'SALINITAS', 'KEKERUHAN', 'SUHU', 'SEMUA'].map((k) => {
                     const active = filter === k;
@@ -252,7 +515,7 @@ const HistoryPeramalan = () => {
                             className="rounded-2xl px-4 py-3 mr-3 mb-3"
                             style={{ backgroundColor: active ? '#67A9F3' : '#cfe3ff' }}
                         >
-                            <Text className="font-extrabold text-[px]" style={{ color: active ? 'white' : '#0f172a' }}>{k}</Text>
+                            <Text className="font-extrabold" style={{ color: active ? 'white' : '#0f172a' }}>{k}</Text>
                         </TouchableOpacity>
                     );
                 })}
@@ -275,7 +538,7 @@ const HistoryPeramalan = () => {
                 </View>
             </View>
 
-            {/* header tabel (proporsi flex → tak overflow) */}
+            {/* header tabel */}
             <View
                 className="mt-4 bg-white rounded-2xl overflow-hidden"
                 style={{
@@ -298,39 +561,54 @@ const HistoryPeramalan = () => {
     const renderItem = ({ item }) => (
         <View style={{ paddingHorizontal: H_PAD, backgroundColor: 'white', borderBottomWidth: 1, borderColor: '#e5e7eb' }}>
             <View className="flex-row items-center">
-                {/* # */}
                 <View style={{ flex: COLS[0].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
                     <Text className="text-[10px] font-semibold text-slate-700" style={{ textAlign: COLS[0].align }}>{item.no}</Text>
                 </View>
-                {/* TANGGAL */}
                 <View style={{ flex: COLS[1].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
                     <Text className="text-[10px] font-semibold text-slate-700" numberOfLines={1}>
-                        {new Date(item.tanggal).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(item.tanggal).toLocaleDateString('id-ID', {
+                            day: '2-digit', month: 'short', year: 'numeric'
+                        })}
                     </Text>
                 </View>
-                {/* PH */}
                 <View style={{ flex: COLS[2].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
-                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[2].align }}>{item.pH ?? '-'}</Text>
+                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[2].align }}>
+                        {item.ph ?? '-'}
+                    </Text>
                 </View>
-                {/* SUHU */}
                 <View style={{ flex: COLS[3].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
-                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[3].align }}>{item.suhu ?? '-'}</Text>
+                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[3].align }}>
+                        {item.suhu ?? '-'}
+                    </Text>
                 </View>
-                {/* KEKERUHAN */}
                 <View style={{ flex: COLS[4].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
-                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[4].align }}>{item.kekeruhan ?? '-'}</Text>
+                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[4].align }}>
+                        {item.kekeruhan ?? '-'}
+                    </Text>
                 </View>
-                {/* SANITASI */}
                 <View style={{ flex: COLS[5].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
-                    <Text className="text-[10px] font-semibold text-slate-700" style={{ textAlign: COLS[5].align }}>{item.salinitas ?? '-'}</Text>
+                    <Text className="text-[12px] font-semibold text-slate-700" style={{ textAlign: COLS[5].align }}>
+                        {item.salinitas ?? '-'}
+                    </Text>
                 </View>
-                {/* RESIKO */}
                 <View style={{ flex: COLS[6].flex, paddingVertical: 12, paddingHorizontal: 10 }}>
                     <Text
                         className="text-[12px] font-extrabold"
-                        style={{ textAlign: COLS[6].align, color: riskText(item) === 'Tinggi' ? '#b91c1c' : '#065f46' }}
+                        style={{
+                            textAlign: COLS[6].align, color: riskText({
+                                ph: Number(String(item.ph).replace('.', '').replace(',', '.')) || item.ph,
+                                suhu: Number(String(item.suhu).replace('.', '').replace(',', '.')) || item.suhu,
+                                salinitas: Number(String(item.salinitas).replace('.', '').replace(',', '.')) || item.salinitas,
+                                kekeruhan: Number(String(item.kekeruhan).replace('.', '').replace(',', '.')) || item.kekeruhan,
+                            }) === 'Tinggi' ? '#b91c1c' : '#065f46'
+                        }}
                     >
-                        {riskText(item)}
+                        {riskText({
+                            ph: Number(String(item.ph).replace('.', '').replace(',', '.')) || item.ph,
+                            suhu: Number(String(item.suhu).replace('.', '').replace(',', '.')) || item.suhu,
+                            salinitas: Number(String(item.salinitas).replace('.', '').replace(',', '.')) || item.salinitas,
+                            kekeruhan: Number(String(item.kekeruhan).replace('.', '').replace(',', '.')) || item.kekeruhan,
+                        })}
                     </Text>
                 </View>
             </View>
@@ -355,6 +633,8 @@ const HistoryPeramalan = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-white">
+            <OrientationLocker orientation={isLandscape ? LANDSCAPE_LEFT : PORTRAIT} />
+
             <FlatList
                 data={loading ? Array.from({ length: 6 }).map((_, i) => ({ id: `s-${i}` })) : rows}
                 keyExtractor={(item, idx) => item.id?.toString?.() || item.no?.toString?.() || String(idx)}
