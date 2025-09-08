@@ -56,9 +56,12 @@ const Menu = ({ navigation: navFromProps }) => {
   };
 
   const doLogout = async () => {
-    try {
-      await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
-    } catch { }
+    const str = await AsyncStorage.getItem('auth_user');
+    const user = str ? JSON.parse(str) : null;
+    if (user?.ID_User) {
+      await unsubscribeUserTopics(user.ID_User, user.lokasiIds || []);
+    }
+    await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
     doResetToLogin();
   };
 
