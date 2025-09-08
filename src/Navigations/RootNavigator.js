@@ -7,6 +7,7 @@ import SplashScreen from '../Screens/SplashScreens/SplashScreens';
 import LoginScreen from '../Auth/LoginScreens';
 import AdminTabs from './AdminTabNavigator';
 import UserTabs from './UserTabNavigator';
+import { subscribeUserTopics, unsubscribeUserTopics } from '../notifications/push';
 
 const Stack = createNativeStackNavigator();
 
@@ -46,11 +47,14 @@ export default function RootNavigator() {
         {(props) => (
           <LoginScreen
             {...props}
-            onLogin={(userRole) => {
-              const normalized = (userRole === 'ADMIN') ? 'ADMIN' : 'USER';
+
+            onLogin={async (user) => {
+              const normalized = (user.role === 'ADMIN') ? 'ADMIN' : 'USER';
+              await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+              // SUBSCRIBE TOPIC PER-USER
+              await subscribeUserTopics(user.ID_User, user.lokasiIds || []);
               setIsLoggedIn(true);
               setRole(normalized);
-              // aman karena 'Admin' & 'User' SELALU terdaftar
               props.navigation.reset({
                 index: 0,
                 routes: [{ name: normalized === 'ADMIN' ? 'Admin' : 'User' }],

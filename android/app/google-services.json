@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "252929578687",
+    "project_id": "simonika-6c155",
+    "storage_bucket": "simonika-6c155.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:252929578687:android:b2412cbc947874ef9d580a",
+        "android_client_info": {
+          "package_name": "com.simonikaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAlRUdJMjbPIgVrE5-Y4vmEtZxGS7SSfc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
